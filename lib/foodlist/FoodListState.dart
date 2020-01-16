@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:collection';
 import 'dart:convert';
+import 'dart:ui';
 
 import 'package:dio/adapter.dart';
 import 'package:flutter/material.dart';
@@ -17,6 +18,7 @@ class FoodListState extends State<FoodListWidget> {
   final _foodList = <FoodItem>[];
   final _biggerFont = const TextStyle(fontSize: 18.0);
   final _saved = new Set<FoodItem>();
+  ScrollController _scrollController = new ScrollController();
 
   @override
   Widget build(BuildContext context) {
@@ -32,28 +34,33 @@ class FoodListState extends State<FoodListWidget> {
   }
 
   Widget _buildFoodList() {
-    return ListView.builder(
+    return new RefreshIndicator(
+      onRefresh: _handleRefresh,
+      child: ListView.builder(
         padding: const EdgeInsets.all(16.0),
+        controller: _scrollController,
+        itemCount: _foodList.length + 1,
         itemBuilder: (context, i) {
-          Future<String> result = DioHelper.doGet(GlobalContest.foodListUrl);
-          result.then((String data) {
-            setState(() {
-              var map = jsonDecode(data);
-              _foodList.addAll(FoodListResult.fromJson(map["result"]).foodList);
-            });
-          });
-          // 在每一列之前，添加一个1像素高的分隔线widget
-          if (i.isOdd) return new Divider();
-          // 语法 "i ~/ 2" 表示i除以2，但返回值是整形（向下取整），比如i为：1, 2, 3, 4, 5
-          // 时，结果为0, 1, 1, 2, 2， 这可以计算出ListView中减去分隔线后的实际单词对数量
-          final index = i ~/ 2;
-          // 如果是建议列表中最后一个单词对
-          if (index >= _foodList.length) {
-            // ...接着再生成10个单词对，然后添加到建议列表
-            _foodList.add(FoodItem.fromJson(new HashMap()));
+          print('itemBuilder i ' + i.toString());
+          if (_foodList.length == 0) {
+            return new Text("无数据");
+          } else {
+            // 在每一列之前，添加一个1像素高的分隔线widget
+            if (i.isOdd) return new Divider();
+            // 语法 "i ~/ 2" 表示i除以2，但返回值是整形（向下取整），比如i为：1, 2, 3, 4, 5
+            // 时，结果为0, 1, 1, 2, 2， 这可以计算出ListView中减去分隔线后的实际单词对数量
+            final index = i ~/ 2;
+            //return _buildRow(_foodList[index]);
+
+            if (i == _foodList.length) {
+              return _buildLoadMore();
+            } else {
+              return _buildRow(_foodList[index]);
+            }
           }
-          return _buildRow(_foodList[index]);
-        });
+        },
+      ),
+    );
   }
 
   Widget _buildRow(FoodItem pair) {
@@ -109,5 +116,56 @@ class FoodListState extends State<FoodListWidget> {
         },
       ),
     );
+  }
+
+  Future _handleRefresh() async {
+    print('refresh');
+    getData(true);
+  }
+
+  Widget _buildLoadMore() {
+    return Container(
+      child: Padding(
+        padding: const EdgeInsets.all(18.0),
+        child: Center(
+          // 转圈加载中
+          child: new CircularProgressIndicator(),
+        ),
+      ),
+      color: Colors.white70,
+    );
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    getData(true);
+    _scrollController.addListener(() {
+//      print("滑动pixels："+_scrollController.position.pixels.toString());
+//      print("滑动maxScrollExtent："+_scrollController.position.maxScrollExtent.toString());
+      if (_scrollController.position.pixels ==
+          _scrollController.position.maxScrollExtent) {
+        getData(false);
+      }
+    });
+  }
+
+  void getData(bool isClear) {
+    Future<String> result = DioHelper.doGet(GlobalContest.foodListUrl);
+    result.then((String data) {
+      setState(() {
+        var map = jsonDecode(data);
+        if (isClear) {
+          _foodList.clear();
+        }
+        _foodList.addAll(FoodListResult.fromJson(map["result"]).foodList);
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+    _scrollController.dispose();
   }
 }

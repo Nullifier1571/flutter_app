@@ -62,16 +62,6 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   Widget build(BuildContext context) {
-    return new MaterialApp(
-      home: new Scaffold(
-        appBar: new AppBar(
-          title: new Text('Welcome to Flutter'),
-        ),
-        body: new Center(
-          //child: new Text(wordPair.asPascalCase),
-          child: new FoodListWidget(),
-        ),
-      ),
-    );
+    return new MaterialApp(home: new FoodListWidget());
   }
 }
