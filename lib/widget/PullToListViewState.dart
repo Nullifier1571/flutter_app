@@ -4,7 +4,15 @@ import 'package:flutter_app/support/GlobalConstant.dart';
 
 import 'PullToListView.dart';
 
-abstract class PullToListViewState<T> extends State<StatefulWidget> {
+class PullToListViewState<T> extends State<PullToListView> {
+  var getData;
+  var _buildRow;
+
+  PullToListViewState(data, _buildRow) {
+    this.getData = data;
+    this._buildRow = _buildRow;
+  }
+
   final _dataList = <T>[];
   ScrollController _scrollController = new ScrollController();
 
@@ -69,10 +77,6 @@ abstract class PullToListViewState<T> extends State<StatefulWidget> {
       }
     });
   }
-
-  void getData(int requestOperation);
-
-  Widget _buildRow(T item);
 
   Future _handleRefresh() async {
     print('refresh');
